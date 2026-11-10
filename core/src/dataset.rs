@@ -165,7 +165,11 @@ pub async fn cmd_register(dataset_id: &str, jsonl_path: &str) -> Result<()> {
     let project = Project::new_from_id(1);
 
     let jsonl_path = &shellexpand::tilde(jsonl_path).into_owned();
+    // Prevent path traversal attacks by rejecting paths containing '..'.
     let jsonl_path = std::path::Path::new(jsonl_path);
+    if jsonl_path.components().any(|c| c == std::path::Component::ParentDir) {
+        return Err(anyhow::anyhow!("Invalid input: {}", jsonl_path.display()));
+    }
 
     let file = File::open(jsonl_path).await?;
     let reader = futures::io::BufReader::new(file);
