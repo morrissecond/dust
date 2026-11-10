@@ -606,6 +606,10 @@ pub async fn cmd_run(dataset_id: &str, config_path: &str) -> Result<()> {
     let run_config = {
         let config_path = &shellexpand::tilde(config_path).into_owned();
         let config_path = std::path::Path::new(config_path);
+        // Prevent path traversal attacks by rejecting paths containing '..'.
+        if config_path.components().any(|c| c == std::path::Component::ParentDir) {
+            Err(anyhow!("Invalid input: {}", config_path.display()))?
+        }
         let config_data = async_std::fs::read_to_string(config_path).await?;
         let config_json: Value = serde_json::from_str(&config_data)?;
 
